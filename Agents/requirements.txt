@@ -1,3 +1,5 @@
 fastapi
 uvicorn
+gunicorn
 opencensus-ext-azure
+azure-identity

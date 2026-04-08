@@ -90,8 +90,10 @@ resource "azurerm_linux_web_app" "agentic_app" {
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.appinsights.instrumentation_key
     "FOUNDRY_RESOURCE_ID"             = local.foundry_resource_id
     "AZURE_REGION"                    = var.location
+    "SCM_DO_BUILD_DURING_DEPLOYMENT"  = "true"
   }
   site_config {
+    app_command_line = "gunicorn -w 2 -k uvicorn.workers.UvicornWorker main:app"
     application_stack {
       python_version = "3.11"
     }
