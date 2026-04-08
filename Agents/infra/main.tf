@@ -32,10 +32,13 @@ data "azurerm_resource_group" "foundry_rg" {
   name = var.resource_group_name
 }
 
-data "azurerm_resources" "foundry" {
-  resource_group_name = var.resource_group_name
-  type                = "Microsoft.Foundry/accounts"
-  name                = var.foundry_resource_name
+variable "foundry_resource_type" {
+  description = "The Azure resource type for the Foundry instance"
+  default     = "Microsoft.MachineLearningServices/workspaces"
+}
+
+locals {
+  foundry_resource_id = "/subscriptions/1ca634f9-21d0-436e-8620-086ad4a697d4/resourceGroups/${var.resource_group_name}/providers/${var.foundry_resource_type}/${var.foundry_resource_name}"
 }
 
 # Create Application Insights
@@ -78,7 +81,7 @@ resource "azurerm_linux_web_app" "agentic_app" {
   service_plan_id     = azurerm_service_plan.agentic_plan.id
   app_settings = {
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.appinsights.instrumentation_key
-    "FOUNDRY_RESOURCE_ID"             = data.azurerm_resources.foundry.resources[0].id
+    "FOUNDRY_RESOURCE_ID"             = local.foundry_resource_id
     "AZURE_REGION"                    = var.location
   }
   site_config {
@@ -119,9 +122,10 @@ output "app_service_default_hostname" {
 }
 
 output "app_insights_instrumentation_key" {
-  value = azurerm_application_insights.appinsights.instrumentation_key
+  value     = azurerm_application_insights.appinsights.instrumentation_key
+  sensitive = true
 }
 
 output "foundry_resource_id" {
-  value = data.azurerm_resources.foundry.resources[0].id
+  value = local.foundry_resource_id
 }
