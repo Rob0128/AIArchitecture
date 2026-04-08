@@ -46,15 +46,13 @@ resource "azurerm_application_insights" "appinsights" {
   application_type    = "web"
 }
 
-# App Service Plan (cheapest tier)
-resource "azurerm_app_service_plan" "agentic_plan" {
+# App Service Plan (cheapest Linux tier)
+resource "azurerm_service_plan" "agentic_plan" {
   name                = "agentic-appservice-plan"
   location            = var.location
   resource_group_name = var.resource_group_name
-  sku {
-    tier = "Basic"
-    size = "B1"
-  }
+  os_type             = "Linux"
+  sku_name            = "B1"
 }
 
 # Virtual Network
@@ -72,19 +70,21 @@ resource "azurerm_subnet" "agentic_subnet" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-# App Service
-resource "azurerm_app_service" "agentic_app" {
+# Linux Web App (Python 3.11)
+resource "azurerm_linux_web_app" "agentic_app" {
   name                = "agentic-appservice"
   location            = var.location
   resource_group_name = var.resource_group_name
-  app_service_plan_id = azurerm_app_service_plan.agentic_plan.id
+  service_plan_id     = azurerm_service_plan.agentic_plan.id
   app_settings = {
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.appinsights.instrumentation_key
     "FOUNDRY_RESOURCE_ID"             = data.azurerm_resources.foundry.resources[0].id
     "AZURE_REGION"                    = var.location
   }
   site_config {
-    python_version = "3.11"
+    application_stack {
+      python_version = "3.11"
+    }
   }
 }
 
@@ -96,7 +96,7 @@ resource "azurerm_private_endpoint" "agentic_pe" {
   subnet_id           = azurerm_subnet.agentic_subnet.id
   private_service_connection {
     name                           = "agentic-appservice-psc"
-    private_connection_resource_id = azurerm_app_service.agentic_app.id
+    private_connection_resource_id = azurerm_linux_web_app.agentic_app.id
     subresource_names              = ["sites"]
     is_manual_connection           = false
   }
@@ -115,7 +115,7 @@ resource "azurerm_subnet_network_security_group_association" "agentic_nsg_assoc"
 }
 
 output "app_service_default_hostname" {
-  value = azurerm_app_service.agentic_app.default_site_hostname
+  value = azurerm_linux_web_app.agentic_app.default_hostname
 }
 
 output "app_insights_instrumentation_key" {
