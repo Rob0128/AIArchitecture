@@ -9,6 +9,7 @@ from azure.ai.inference.models import (
     SystemMessage,
     UserMessage,
 )
+from azure.ai.inference.tracing import AIInferenceInstrumentor
 from azure.core.settings import settings as azure_settings
 from azure.monitor.opentelemetry import configure_azure_monitor
 from opentelemetry import trace
@@ -23,6 +24,9 @@ if AI_CONN_STR:
 
 # Enable azure SDK tracing via OpenTelemetry
 azure_settings.tracing_implementation = "opentelemetry"
+
+# Instrument azure-ai-inference to emit GenAI spans
+AIInferenceInstrumentor().instrument()
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)

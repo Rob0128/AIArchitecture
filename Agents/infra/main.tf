@@ -90,11 +90,12 @@ resource "azurerm_linux_web_app" "agentic_app" {
     "APPINSIGHTS_INSTRUMENTATIONKEY"    = azurerm_application_insights.appinsights.instrumentation_key
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.appinsights.connection_string
     "FOUNDRY_RESOURCE_ID"             = local.foundry_resource_id
-    "FOUNDRY_ENDPOINT"                = "https://aifoundrytest3332.cognitiveservices.azure.com"
+    "FOUNDRY_ENDPOINT"                = "https://aifoundrytest3332.services.ai.azure.com/models"
     "FOUNDRY_DEPLOYMENT_NAME"          = "DeepSeek-V3-0324"
     "AZURE_REGION"                    = var.location
     "SCM_DO_BUILD_DURING_DEPLOYMENT"  = "true"
     "ENABLE_ORYX_BUILD"                = "true"
+    "AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED" = "true"
   }
   identity {
     type = "SystemAssigned"
