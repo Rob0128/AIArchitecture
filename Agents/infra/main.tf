@@ -32,9 +32,10 @@ data "azurerm_resource_group" "foundry_rg" {
   name = var.resource_group_name
 }
 
-data "azurerm_resource" "foundry" {
-  name                = var.foundry_resource_name
+data "azurerm_resources" "foundry" {
   resource_group_name = var.resource_group_name
+  type                = "Microsoft.Foundry/accounts"
+  name                = var.foundry_resource_name
 }
 
 # Create Application Insights
@@ -79,7 +80,7 @@ resource "azurerm_app_service" "agentic_app" {
   app_service_plan_id = azurerm_app_service_plan.agentic_plan.id
   app_settings = {
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.appinsights.instrumentation_key
-    "FOUNDRY_RESOURCE_ID"             = data.azurerm_resource.foundry.id
+    "FOUNDRY_RESOURCE_ID"             = data.azurerm_resources.foundry.resources[0].id
     "AZURE_REGION"                    = var.location
   }
   site_config {
@@ -122,5 +123,5 @@ output "app_insights_instrumentation_key" {
 }
 
 output "foundry_resource_id" {
-  value = data.azurerm_resource.foundry.id
+  value = data.azurerm_resources.foundry.resources[0].id
 }
