@@ -31,21 +31,36 @@ jobs:
     needs: build-test
     runs-on: ubuntu-latest
     environment: production
+    env:
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
     steps:
       - uses: actions/checkout@v4
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+      - name: Create Terraform Backend Storage
+        run: |
+          az storage account create --name agentictfstate --resource-group AITest --location ukwest --sku Standard_LRS --allow-blob-public-access false 2>/dev/null || true
+          az storage container create --name tfstate --account-name agentictfstate 2>/dev/null || true
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
       - name: Terraform Init
         working-directory: Agents/infra
         run: terraform init
+      - name: Import Existing Resources
+        working-directory: Agents/infra
+        run: |
+          terraform import azurerm_application_insights.appinsights /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/AITest/providers/Microsoft.Insights/components/agentic-appinsights 2>/dev/null || true
+          terraform import azurerm_service_plan.agentic_plan /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/AITest/providers/Microsoft.Web/serverFarms/agentic-appservice-plan 2>/dev/null || true
+          terraform import azurerm_virtual_network.agentic_vnet /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/AITest/providers/Microsoft.Network/virtualNetworks/agentic-vnet 2>/dev/null || true
+          terraform import azurerm_network_security_group.agentic_nsg /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/AITest/providers/Microsoft.Network/networkSecurityGroups/agentic-nsg 2>/dev/null || true
       - name: Terraform Apply
         working-directory: Agents/infra
         run: terraform apply -auto-approve
-        env:
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
   deploy:
     needs: terraform

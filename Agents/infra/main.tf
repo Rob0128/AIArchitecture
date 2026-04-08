@@ -8,6 +8,13 @@ terraform {
     }
   }
   required_version = ">= 1.1.0"
+
+  backend "azurerm" {
+    resource_group_name  = "AITest"
+    storage_account_name = "agentictfstate"
+    container_name       = "tfstate"
+    key                  = "agentic.tfstate"
+  }
 }
 
 provider "azurerm" {
