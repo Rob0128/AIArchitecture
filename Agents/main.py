@@ -68,9 +68,9 @@ def root():
 
 
 @app.post("/agent")
-def agent_endpoint(request: Request):
+async def agent_endpoint(request: Request):
     with tracer.span(name="agent_request"):
-        data = request.json()
+        data = await request.json()
         logger.info(
             "Agent endpoint called.",
             extra={"custom_dimensions": data}
