@@ -1,0 +1,12 @@
+{
+  "name": "rag-indexer",
+  "dataSourceName": "adls-datasource",
+  "targetIndexName": "rag-index",
+  "skillsetName": "rag-skillset",
+  "parameters": { 
+    "configuration": { 
+      "dataToExtract": "contentAndMetadata",
+      "addIdentitiesToMetadata": true
+    } 
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "rag-skillset",
+  "skills": [
+    {
+      "@odata.type": "#Microsoft.Skills.Text.SplitSkill",
+      "context": "/document",
+      "textSplitMode": "pages",
+      "maximumPageLength": 2000,
+      "outputs": [{ "name": "textItems", "targetName": "pages" }]
+    },
+    {
+      "@odata.type": "#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill",
+      "context": "/document/pages/*",
+      "resourceUri": "https://aiopenaitest232.openai.azure.com",
+      "deploymentId": "text-embedding-3-small",
+      "modelName": "text-embedding-3-small",
+      "inputs": [{ "name": "text", "source": "/document/pages/*" }],
+      "outputs": [{ "name": "embedding", "targetName": "text_vector" }]
+    }
+  ],
+  "indexProjections": {
+    "selectors": [
+      {
+        "targetIndexName": "rag-index",
+        "parentKeyFieldName": "parentId",
+        "sourceContext": "/document/pages/*",
+        "mappings": [
+          { "name": "contentVector", "source": "/document/pages/*/text_vector" },
+          { "name": "content", "source": "/document/pages/*" },
+          { "name": "userIds", "source": "/document/userIds" },
+          { "name": "groupIds", "source": "/document/groupIds" }
+        ]
+      }
+    ]
+  }
+}

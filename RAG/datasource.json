@@ -1,0 +1,12 @@
+{
+  "name": "adls-datasource",
+  "type": "adlsgen2",
+  "credentials": { "connectionString": "ResourceId=/subscriptions/1ca634f9-21d0-436e-8620-086ad4a697d4/resourceGroups/AITest/providers/Microsoft.Storage/storageAccounts/airagtest232322;" },
+  "container": { "name": "aidocs" },
+  "dataSelectionFilters": null,
+  "dataChangeDetectionPolicy": null,
+  "identity": { 
+    "@odata.type": "#Microsoft.Azure.Search.DataContainerUserAssignedIdentity", 
+    "userAssignedIdentity": "/subscriptions/1ca634f9-21d0-436e-8620-086ad4a697d4/resourceGroups/AITest/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-search-rag" 
+  }
+}

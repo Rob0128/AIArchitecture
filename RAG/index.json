@@ -1,0 +1,16 @@
+{
+  "name": "rag-index",
+  "fields": [
+    {"name": "id", "type": "Edm.String", "key": true, "analyzer": "keyword", "searchable": true, "filterable": true},
+    {"name": "parentId", "type": "Edm.String", "filterable": true, "retrievable": true},
+    {"name": "content", "type": "Edm.String", "searchable": true, "retrievable": true},
+    {"name": "title", "type": "Edm.String", "searchable": true, "retrievable": true},
+    {"name": "userIds", "type": "Collection(Edm.String)", "filterable": true, "retrievable": true},
+    {"name": "groupIds", "type": "Collection(Edm.String)", "filterable": true, "retrievable": true},
+    {"name": "contentVector", "type": "Collection(Edm.Single)", "dimensions": 1536, "vectorSearchProfile": "vector-profile"}
+  ],
+  "vectorSearch": {
+    "algorithms": [{"name": "hnsw-config", "kind": "hnsw"}],
+    "profiles": [{"name": "vector-profile", "algorithm": "hnsw-config"}]
+  }
+}

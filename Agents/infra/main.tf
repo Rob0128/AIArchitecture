@@ -1,0 +1,126 @@
+# Terraform configuration for Azure resources for the agentic application
+
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 3.0.0"
+    }
+  }
+  required_version = ">= 1.1.0"
+}
+
+provider "azurerm" {
+  features {}
+  subscription_id = "1ca634f9-21d0-436e-8620-086ad4a697d4"
+}
+
+variable "location" {
+  default = "UK West"
+}
+
+variable "resource_group_name" {
+  default = "AITest"
+}
+
+variable "foundry_resource_name" {
+  default = "AIfoundrytest3332"
+}
+
+# Reference existing Foundry resource
+data "azurerm_resource_group" "foundry_rg" {
+  name = var.resource_group_name
+}
+
+data "azurerm_resource" "foundry" {
+  name                = var.foundry_resource_name
+  resource_group_name = var.resource_group_name
+}
+
+# Create Application Insights
+resource "azurerm_application_insights" "appinsights" {
+  name                = "agentic-appinsights"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  application_type    = "web"
+}
+
+# App Service Plan (cheapest tier)
+resource "azurerm_app_service_plan" "agentic_plan" {
+  name                = "agentic-appservice-plan"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  sku {
+    tier = "Basic"
+    size = "B1"
+  }
+}
+
+# Virtual Network
+resource "azurerm_virtual_network" "agentic_vnet" {
+  name                = "agentic-vnet"
+  address_space       = ["10.0.0.0/16"]
+  location            = var.location
+  resource_group_name = var.resource_group_name
+}
+
+resource "azurerm_subnet" "agentic_subnet" {
+  name                 = "agentic-subnet"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.agentic_vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+# App Service
+resource "azurerm_app_service" "agentic_app" {
+  name                = "agentic-appservice"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  app_service_plan_id = azurerm_app_service_plan.agentic_plan.id
+  app_settings = {
+    "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.appinsights.instrumentation_key
+    "FOUNDRY_RESOURCE_ID"             = data.azurerm_resource.foundry.id
+    "AZURE_REGION"                    = var.location
+  }
+  site_config {
+    python_version = "3.11"
+  }
+}
+
+# Private Endpoint for App Service
+resource "azurerm_private_endpoint" "agentic_pe" {
+  name                = "agentic-appservice-pe"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  subnet_id           = azurerm_subnet.agentic_subnet.id
+  private_service_connection {
+    name                           = "agentic-appservice-psc"
+    private_connection_resource_id = azurerm_app_service.agentic_app.id
+    subresource_names              = ["sites"]
+    is_manual_connection           = false
+  }
+}
+
+# NSG for subnet
+resource "azurerm_network_security_group" "agentic_nsg" {
+  name                = "agentic-nsg"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+}
+
+resource "azurerm_subnet_network_security_group_association" "agentic_nsg_assoc" {
+  subnet_id                 = azurerm_subnet.agentic_subnet.id
+  network_security_group_id = azurerm_network_security_group.agentic_nsg.id
+}
+
+output "app_service_default_hostname" {
+  value = azurerm_app_service.agentic_app.default_site_hostname
+}
+
+output "app_insights_instrumentation_key" {
+  value = azurerm_application_insights.appinsights.instrumentation_key
+}
+
+output "foundry_resource_id" {
+  value = data.azurerm_resource.foundry.id
+}
