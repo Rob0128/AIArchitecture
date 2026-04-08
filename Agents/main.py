@@ -1,43 +1,35 @@
-# FastAPI skeleton for agentic application
+# FastAPI agentic application with Azure AI Foundry tracing
 from fastapi import FastAPI, Request
 import logging
 import os
 
-from opencensus.ext.azure.log_exporter import AzureLogHandler
-from opencensus.ext.azure.trace_exporter import AzureExporter
-from opencensus.trace.samplers import ProbabilitySampler
-from opencensus.trace.tracer import Tracer
 from azure.identity import DefaultAzureCredential
-from openai import AzureOpenAI
+from azure.ai.inference import ChatCompletionsClient
+from azure.ai.inference.models import (
+    SystemMessage,
+    UserMessage,
+)
+from azure.core.settings import settings as azure_settings
+from azure.monitor.opentelemetry import configure_azure_monitor
+from opentelemetry import trace
 
+
+# Configure OpenTelemetry -> Application Insights
+AI_CONN_STR = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+if AI_CONN_STR:
+    configure_azure_monitor(
+        connection_string=AI_CONN_STR,
+    )
+
+# Enable azure SDK tracing via OpenTelemetry
+azure_settings.tracing_implementation = "opentelemetry"
+
+logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 app = FastAPI()
 
 credential = DefaultAzureCredential()
-
-# Application Insights setup
-APPINSIGHTS_KEY = os.getenv("APPINSIGHTS_INSTRUMENTATIONKEY")
-if APPINSIGHTS_KEY:
-    logger = logging.getLogger(__name__)
-    logger.addHandler(
-        AzureLogHandler(
-            connection_string=(
-                f'InstrumentationKey={APPINSIGHTS_KEY}'
-            )
-        )
-    )
-    tracer = Tracer(
-        exporter=AzureExporter(
-            connection_string=(
-                f'InstrumentationKey={APPINSIGHTS_KEY}'
-            )
-        ),
-        sampler=ProbabilitySampler(1.0),
-    )
-else:
-    logger = logging.getLogger(__name__)
-    tracer = Tracer()
-
 
 FOUNDRY_ENDPOINT = os.getenv("FOUNDRY_ENDPOINT", "")
 DEPLOYMENT_NAME = os.getenv(
@@ -45,16 +37,14 @@ DEPLOYMENT_NAME = os.getenv(
 )
 
 
-def get_openai_client():
-    token = credential.get_token(
-        "https://cognitiveservices.azure.com/.default"
+def get_inference_client():
+    return ChatCompletionsClient(
+        endpoint=FOUNDRY_ENDPOINT,
+        credential=credential,
+        credential_scopes=[
+            "https://cognitiveservices.azure.com/.default"
+        ],
     )
-    client = AzureOpenAI(
-        azure_endpoint=FOUNDRY_ENDPOINT,
-        api_key=token.token,
-        api_version="2024-12-01-preview",
-    )
-    return client
 
 
 def call_foundry_agent(input_data):
@@ -62,15 +52,14 @@ def call_foundry_agent(input_data):
     if not prompt:
         return {"error": "No prompt provided"}
     try:
-        client = get_openai_client()
-        response = client.chat.completions.create(
+        client = get_inference_client()
+        response = client.complete(
             model=DEPLOYMENT_NAME,
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant.",
-                },
-                {"role": "user", "content": prompt},
+                SystemMessage(
+                    content="You are a helpful assistant."
+                ),
+                UserMessage(content=prompt),
             ],
             max_tokens=1024,
         )
@@ -90,11 +79,8 @@ def root():
 
 @app.post("/agent")
 async def agent_endpoint(request: Request):
-    with tracer.span(name="agent_request"):
+    with tracer.start_as_current_span("agent_request"):
         data = await request.json()
-        logger.info(
-            "Agent endpoint called.",
-            extra={"custom_dimensions": data}
-        )
+        logger.info("Agent endpoint called.")
         result = call_foundry_agent(data)
         return result

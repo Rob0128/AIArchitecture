@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install fastapi uvicorn opencensus-ext-azure
+          pip install -r Agents/requirements.txt
       - name: Lint
         run: |
           pip install flake8

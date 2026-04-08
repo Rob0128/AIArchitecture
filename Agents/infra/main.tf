@@ -87,7 +87,8 @@ resource "azurerm_linux_web_app" "agentic_app" {
   resource_group_name = var.resource_group_name
   service_plan_id     = azurerm_service_plan.agentic_plan.id
   app_settings = {
-    "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.appinsights.instrumentation_key
+    "APPINSIGHTS_INSTRUMENTATIONKEY"    = azurerm_application_insights.appinsights.instrumentation_key
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.appinsights.connection_string
     "FOUNDRY_RESOURCE_ID"             = local.foundry_resource_id
     "FOUNDRY_ENDPOINT"                = "https://aifoundrytest3332.cognitiveservices.azure.com"
     "FOUNDRY_DEPLOYMENT_NAME"          = "DeepSeek-V3-0324"

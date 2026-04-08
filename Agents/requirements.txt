@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 gunicorn
-opencensus-ext-azure
 azure-identity
-openai
+azure-ai-inference
+azure-monitor-opentelemetry
+opentelemetry-api
