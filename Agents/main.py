@@ -1,4 +1,4 @@
-# FastAPI skeleton for agentic application with Azure Foundry and Application Insights
+# FastAPI skeleton for agentic application
 from fastapi import FastAPI, Request
 import logging
 import os
@@ -39,7 +39,6 @@ else:
 # Placeholder for Foundry integration
 
 
-
 # Helper to get Azure AD token using DefaultAzureCredential
 def get_azure_ad_token(scope="https://management.azure.com/.default"):
     try:
@@ -49,7 +48,6 @@ def get_azure_ad_token(scope="https://management.azure.com/.default"):
     except Exception as e:
         logger.error(f"Failed to get Azure AD token: {e}")
         return None
-
 
 
 def call_foundry_agent(input_data):
@@ -63,12 +61,10 @@ def call_foundry_agent(input_data):
     return {"result": "Foundry response placeholder (token acquired)"}
 
 
-
 @app.get("/")
 def root():
     logger.info("Root endpoint called.")
     return {"message": "Agentic API is running."}
-
 
 
 @app.post("/agent")
