@@ -91,6 +91,7 @@ resource "azurerm_linux_web_app" "agentic_app" {
     "FOUNDRY_RESOURCE_ID"             = local.foundry_resource_id
     "AZURE_REGION"                    = var.location
     "SCM_DO_BUILD_DURING_DEPLOYMENT"  = "true"
+    "ENABLE_ORYX_BUILD"                = "true"
   }
   site_config {
     app_command_line = "gunicorn -w 2 -k uvicorn.workers.UvicornWorker main:app"
