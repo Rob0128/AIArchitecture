@@ -89,6 +89,8 @@ resource "azurerm_linux_web_app" "agentic_app" {
   app_settings = {
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.appinsights.instrumentation_key
     "FOUNDRY_RESOURCE_ID"             = local.foundry_resource_id
+    "FOUNDRY_ENDPOINT"                = "https://aifoundrytest3332.cognitiveservices.azure.com"
+    "FOUNDRY_DEPLOYMENT_NAME"          = "DeepSeek-V3-0324"
     "AZURE_REGION"                    = var.location
     "SCM_DO_BUILD_DURING_DEPLOYMENT"  = "true"
     "ENABLE_ORYX_BUILD"                = "true"

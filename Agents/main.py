@@ -8,10 +8,12 @@ from opencensus.ext.azure.trace_exporter import AzureExporter
 from opencensus.trace.samplers import ProbabilitySampler
 from opencensus.trace.tracer import Tracer
 from azure.identity import DefaultAzureCredential
+from openai import AzureOpenAI
 
 
 app = FastAPI()
 
+credential = DefaultAzureCredential()
 
 # Application Insights setup
 APPINSIGHTS_KEY = os.getenv("APPINSIGHTS_INSTRUMENTATIONKEY")
@@ -36,29 +38,48 @@ else:
     logger = logging.getLogger(__name__)
     tracer = Tracer()
 
-# Placeholder for Foundry integration
+
+FOUNDRY_ENDPOINT = os.getenv("FOUNDRY_ENDPOINT", "")
+DEPLOYMENT_NAME = os.getenv(
+    "FOUNDRY_DEPLOYMENT_NAME", "DeepSeek-V3-0324"
+)
 
 
-# Helper to get Azure AD token using DefaultAzureCredential
-def get_azure_ad_token(scope="https://management.azure.com/.default"):
-    try:
-        credential = DefaultAzureCredential()
-        token = credential.get_token(scope)
-        return token.token
-    except Exception as e:
-        logger.error(f"Failed to get Azure AD token: {e}")
-        return None
+def get_openai_client():
+    token = credential.get_token(
+        "https://cognitiveservices.azure.com/.default"
+    )
+    client = AzureOpenAI(
+        azure_endpoint=FOUNDRY_ENDPOINT,
+        api_key=token.token,
+        api_version="2024-12-01-preview",
+    )
+    return client
 
 
 def call_foundry_agent(input_data):
-    # TODO: Implement call to Azure Foundry using SDK or REST API
-    # Use os.getenv("FOUNDRY_RESOURCE_ID") and os.getenv("AZURE_REGION")
-    # Example usage of get_azure_ad_token():
-    token = get_azure_ad_token()
-    if not token:
-        return {"error": "Could not acquire Azure AD token"}
-    # ...continue with Foundry API call using the token...
-    return {"result": "Foundry response placeholder (token acquired)"}
+    prompt = input_data.get("prompt", "")
+    if not prompt:
+        return {"error": "No prompt provided"}
+    try:
+        client = get_openai_client()
+        response = client.chat.completions.create(
+            model=DEPLOYMENT_NAME,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=1024,
+        )
+        return {
+            "result": response.choices[0].message.content
+        }
+    except Exception as e:
+        logger.error(f"Foundry API call failed: {e}")
+        return {"error": str(e)}
 
 
 @app.get("/")

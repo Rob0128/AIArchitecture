@@ -3,3 +3,4 @@ uvicorn
 gunicorn
 opencensus-ext-azure
 azure-identity
+openai
