@@ -51,15 +51,6 @@ jobs:
       - name: Terraform Init
         working-directory: Agents/infra
         run: terraform init
-      - name: Import Existing Resources
-        working-directory: Agents/infra
-        run: |
-          terraform import azurerm_application_insights.appinsights /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/AITest/providers/Microsoft.Insights/components/agentic-appinsights 2>/dev/null || true
-          terraform import azurerm_service_plan.agentic_plan /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/AITest/providers/Microsoft.Web/serverFarms/agentic-appservice-plan 2>/dev/null || true
-          terraform import azurerm_virtual_network.agentic_vnet /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/AITest/providers/Microsoft.Network/virtualNetworks/agentic-vnet 2>/dev/null || true
-          terraform import azurerm_network_security_group.agentic_nsg /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/AITest/providers/Microsoft.Network/networkSecurityGroups/agentic-nsg 2>/dev/null || true
-          terraform import azurerm_subnet.agentic_subnet /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/AITest/providers/Microsoft.Network/virtualNetworks/agentic-vnet/subnets/agentic-subnet 2>/dev/null || true
-          terraform import azurerm_linux_web_app.agentic_app /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/AITest/providers/Microsoft.Web/sites/agentic-appservice 2>/dev/null || true
       - name: Terraform Apply
         working-directory: Agents/infra
         run: terraform apply -auto-approve
