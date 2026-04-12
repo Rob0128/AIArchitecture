@@ -68,6 +68,10 @@ jobs:
         run: |
           cd Agents
           zip -r ../deploy.zip . -x "infra/*" "__pycache__/*" ".env" "*/__pycache__/*" "get_gmail_token.py"
+      - name: Clear Oryx build cache
+        run: |
+          az webapp config appsettings set --resource-group AITest --name agentic-appservice --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false > /dev/null
+          az webapp config appsettings set --resource-group AITest --name agentic-appservice --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true > /dev/null
       - name: Deploy to Azure App Service
         run: |
-          az webapp deploy --resource-group AITest --name agentic-appservice --src-path deploy.zip --type zip --async true
+          az webapp deploy --resource-group AITest --name agentic-appservice --src-path deploy.zip --type zip
