@@ -279,7 +279,7 @@ async def check_emails(
     # 2. Priority senders — pick up even if already read
     for sender_addr in AUTO_REPLY_SENDERS:
         priority_msgs = gmail_client.search_emails(
-            f"from:{sender_addr} newer_than:7d",
+            f"from:{sender_addr} newer_than:7d is:unread",
             max_results=10,
         )
         for msg in priority_msgs:
@@ -306,7 +306,7 @@ async def process_from(request: Request):
         return {"error": "sender field required"}
 
     msgs = gmail_client.search_emails(
-        f"from:{sender_addr} newer_than:14d",
+        f"from:{sender_addr} newer_than:14d is:unread",
         max_results=10,
     )
     results = []
