@@ -200,6 +200,11 @@ class GmailClient:
         resp = self._request(
             requests.post, send_url, json=payload
         )
+        if not resp.ok:
+            logger.error(
+                "reply_to_email failed %s: %s",
+                resp.status_code, resp.text,
+            )
         return resp.ok
 
     def send_email(self, to, subject, body_html):
