@@ -113,7 +113,10 @@ def _generate_reply(
         ],
         max_tokens=512,
     )
-    return response.choices[0].message.content
+    text = response.choices[0].message.content
+    if not text or not text.strip():
+        raise ValueError("LLM returned empty content")
+    return text
 
 
 def process_email(email_id: str):
@@ -178,21 +181,23 @@ def process_email(email_id: str):
                         client, subject, body, sender,
                         category, result,
                     )
-                    if not reply_text:
-                        reply_text = "<p>Hello!</p>"
                 except Exception as reply_err:
                     logger.warning(
-                        "LLM reply generation failed "
-                        "(%s), using fallback", reply_err,
+                        "LLM reply generation failed for"
+                        " %s (%s), using fallback",
+                        email_id, reply_err,
                     )
-                    reply_text = "<p>Hello!</p>"
+                    reply_text = (
+                        "<p>Thanks for your email, "
+                        "I'll get back to you shortly.</p>"
+                    )
                 sent = gmail_client.reply_to_email(
                     email_id, reply_text,
                 )
                 result["auto_replied"] = sent
                 logger.info(
-                    "Auto-reply to %s: sent=%s",
-                    sender, sent,
+                    "Auto-reply to %s: sent=%s reply=%s",
+                    sender, sent, reply_text[:80],
                 )
 
             # Mark as read so next poll skips it
@@ -289,6 +294,28 @@ async def check_emails(
         "queued": len(already_queued),
         "message_ids": list(already_queued),
     }
+
+
+@app.post("/process-from")
+async def process_from(request: Request):
+    """Find and synchronously process recent emails from
+    a specific sender (read or unread, last 14 days)."""
+    data = await request.json()
+    sender_addr = data.get("sender", "")
+    if not sender_addr:
+        return {"error": "sender field required"}
+
+    msgs = gmail_client.search_emails(
+        f"from:{sender_addr} newer_than:14d",
+        max_results=10,
+    )
+    results = []
+    for msg in msgs:
+        mid = msg["id"]
+        result = process_email(mid)
+        results.append({"id": mid, "result": result})
+
+    return {"found": len(msgs), "results": results}
 
 
 @app.get("/debug-gmail")
