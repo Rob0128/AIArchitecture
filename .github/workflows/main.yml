@@ -67,7 +67,7 @@ jobs:
       - name: Create deployment package
         run: |
           cd Agents
-          zip -r ../deploy.zip . -x "infra/*" "__pycache__/*" ".env" "*/__pycache__/*"
+          zip -r ../deploy.zip . -x "infra/*" "__pycache__/*" ".env" "*/__pycache__/*" "get_gmail_token.py"
       - name: Deploy to Azure App Service
         run: |
           az webapp deploy --resource-group AITest --name agentic-appservice --src-path deploy.zip --type zip --async true
