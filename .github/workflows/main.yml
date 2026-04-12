@@ -23,7 +23,7 @@ jobs:
       - name: Lint
         run: |
           pip install flake8
-          flake8 Agents/main.py
+          flake8 Agents/ --exclude=__pycache__
       - name: Test (placeholder)
         run: echo "No tests yet"
 
@@ -53,7 +53,7 @@ jobs:
         run: terraform init
       - name: Terraform Apply
         working-directory: Agents/infra
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve -var="gmail_client_id=${{ secrets.GMAIL_CLIENT_ID }}" -var="gmail_client_secret=${{ secrets.GMAIL_CLIENT_SECRET }}" -var="gmail_refresh_token=${{ secrets.GMAIL_REFRESH_TOKEN }}"
 
   deploy:
     needs: terraform
@@ -67,7 +67,7 @@ jobs:
       - name: Create deployment package
         run: |
           cd Agents
-          zip -r ../deploy.zip . -x "infra/*" "__pycache__/*" ".env"
+          zip -r ../deploy.zip . -x "infra/*" "__pycache__/*" ".env" "*/__pycache__/*"
       - name: Deploy to Azure App Service
         run: |
           az webapp deploy --resource-group AITest --name agentic-appservice --src-path deploy.zip --type zip --async true

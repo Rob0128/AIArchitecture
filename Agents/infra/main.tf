@@ -34,6 +34,23 @@ variable "foundry_resource_name" {
   default = "AIfoundrytest3332"
 }
 
+variable "gmail_client_id" {
+  description = "Google OAuth2 client ID for Gmail API"
+  type        = string
+}
+
+variable "gmail_client_secret" {
+  description = "Google OAuth2 client secret"
+  type        = string
+  sensitive   = true
+}
+
+variable "gmail_refresh_token" {
+  description = "Gmail OAuth2 refresh token"
+  type        = string
+  sensitive   = true
+}
+
 # Reference existing Foundry resource
 data "azurerm_resource_group" "foundry_rg" {
   name = var.resource_group_name
@@ -96,6 +113,9 @@ resource "azurerm_linux_web_app" "agentic_app" {
     "SCM_DO_BUILD_DURING_DEPLOYMENT"  = "true"
     "ENABLE_ORYX_BUILD"                = "true"
     "AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED" = "true"
+    "GMAIL_CLIENT_ID"                 = var.gmail_client_id
+    "GMAIL_CLIENT_SECRET"             = var.gmail_client_secret
+    "GMAIL_REFRESH_TOKEN"             = var.gmail_refresh_token
   }
   identity {
     type = "SystemAssigned"

@@ -5,3 +5,4 @@ azure-identity
 azure-ai-inference
 azure-monitor-opentelemetry
 opentelemetry-api
+requests
