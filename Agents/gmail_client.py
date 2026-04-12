@@ -68,6 +68,21 @@ class GmailClient:
         )
         return []
 
+    def search_emails(self, query, max_results=5):
+        """Search emails by arbitrary Gmail query string."""
+        url = f"{GMAIL_BASE}/users/me/messages"
+        params = {"q": query, "maxResults": max_results}
+        resp = self._request(
+            requests.get, url, params=params
+        )
+        if resp.ok:
+            return resp.json().get("messages", [])
+        logger.error(
+            "Failed to search emails: %s %s",
+            resp.status_code, resp.text,
+        )
+        return []
+
     def _extract_body(self, payload):
         """Recursively extract plain-text body from
         Gmail payload."""

@@ -170,22 +170,29 @@ def process_email(email_id: str):
             )
 
             # Auto-reply to emails from specific senders
-            AUTO_REPLY_SENDERS = [
-                "robertjohnhill1@gmail.com",
-            ]
             if any(
                 s in sender for s in AUTO_REPLY_SENDERS
             ):
-                reply_text = _generate_reply(
-                    client, subject, body, sender,
-                    category, result,
-                )
-                gmail_client.reply_to_email(
+                try:
+                    reply_text = _generate_reply(
+                        client, subject, body, sender,
+                        category, result,
+                    )
+                    if not reply_text:
+                        reply_text = "<p>Hello!</p>"
+                except Exception as reply_err:
+                    logger.warning(
+                        "LLM reply generation failed "
+                        "(%s), using fallback", reply_err,
+                    )
+                    reply_text = "<p>Hello!</p>"
+                sent = gmail_client.reply_to_email(
                     email_id, reply_text,
                 )
-                result["auto_replied"] = True
+                result["auto_replied"] = sent
                 logger.info(
-                    "Auto-replied to %s", sender,
+                    "Auto-reply to %s: sent=%s",
+                    sender, sent,
                 )
 
             # Mark as read so next poll skips it
@@ -241,19 +248,46 @@ def get_results():
     }
 
 
+# Senders that always get an auto-reply (read or unread)
+AUTO_REPLY_SENDERS = [
+    "robertjohnhill1@gmail.com",
+]
+
+
 @app.post("/check-emails")
 async def check_emails(
     background_tasks: BackgroundTasks,
 ):
-    """Poll Gmail for unread emails and process them."""
+    """Poll Gmail for unread emails and process them.
+    Also checks priority senders regardless of read status."""
+    already_queued = set()
+
+    # 1. Regular unread batch
     unread = gmail_client.get_unread_emails()
     for msg in unread:
-        background_tasks.add_task(
-            process_email, msg["id"]
+        if msg["id"] not in email_results:
+            background_tasks.add_task(
+                process_email, msg["id"]
+            )
+            already_queued.add(msg["id"])
+
+    # 2. Priority senders — pick up even if already read
+    for sender_addr in AUTO_REPLY_SENDERS:
+        priority_msgs = gmail_client.search_emails(
+            f"from:{sender_addr} newer_than:7d",
+            max_results=10,
         )
+        for msg in priority_msgs:
+            mid = msg["id"]
+            if mid not in already_queued and mid not in email_results:
+                background_tasks.add_task(
+                    process_email, mid
+                )
+                already_queued.add(mid)
+
     return {
-        "queued": len(unread),
-        "message_ids": [m["id"] for m in unread],
+        "queued": len(already_queued),
+        "message_ids": list(already_queued),
     }
 
 
@@ -263,6 +297,20 @@ async def debug_gmail():
     import requests as req
     try:
         token = gmail_client._get_token()
+        # Search all emails from priority senders in last 7d
+        search_results = {}
+        for s in AUTO_REPLY_SENDERS:
+            resp = req.get(
+                "https://gmail.googleapis.com/gmail/v1"
+                "/users/me/messages",
+                headers={"Authorization": f"Bearer {token}"},
+                params={
+                    "q": f"from:{s} newer_than:7d",
+                    "maxResults": 5,
+                },
+                timeout=30,
+            )
+            search_results[s] = resp.json()
         resp = req.get(
             "https://gmail.googleapis.com/gmail/v1"
             "/users/me/messages",
@@ -271,8 +319,8 @@ async def debug_gmail():
             timeout=30,
         )
         return {
-            "status_code": resp.status_code,
-            "body": resp.json(),
+            "unread": resp.json(),
+            "priority_sender_search": search_results,
         }
     except Exception as e:
         return {"error": str(e)}
